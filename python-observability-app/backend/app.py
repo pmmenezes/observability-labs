@@ -11,9 +11,9 @@ CORS(app) # Habilite CORS para permitir requisições do frontend
 def get_db_connection():
     conn = psycopg2.connect(
         host=os.environ.get('DB_HOST', 'localhost'),
-        database=os.environ.get('DB_NAME', 'products_db'), # Substitua pelo nome do seu DB
-        user=os.environ.get('DB_USER', 'user'),           # Substitua pelo seu usuário
-        password=os.environ.get('DB_PASSWORD', 'password') # Substitua pela sua senha
+        database=os.environ.get('DB_NAME', 'appdb'), # Substitua pelo nome do seu DB
+        user=os.environ.get('DB_USER', 'appuser'),           # Substitua pelo seu usuário
+        password=os.environ.get('DB_PASSWORD', 'apppassword') # Substitua pela sua senha
     )
     return conn
 
