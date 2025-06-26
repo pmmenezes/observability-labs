@@ -1,5 +1,19 @@
 #!/bin/bash
 
+
+# --- Solicitação da Chave de Licença do New Relic ---
+echo ""
+echo "==================================================="
+echo "Configuração do New Relic:"
+echo "Para que o New Relic APM funcione, precisamos da sua License Key."
+echo "Você pode encontrá-la em New Relic One -> API keys -> Ingest -> License key."
+echo "==================================================="
+read -p "Por favor, insira sua New Relic License Key: " NEW_RELIC_LICENSE_KEY
+if [ -z "$NEW_RELIC_LICENSE_KEY" ]; then
+    echo "Aviso: Nenhuma License Key do New Relic foi fornecida. O APM não irá enviar dados."
+    echo "Você pode configurar a chave manualmente nos arquivos newrelic.ini depois."
+fi
+
 # --- Variáveis de Configuração ---
 # !!! ATENÇÃO: Estes valores devem ser consistentes com o seu app.py e o setup do Postgres !!!
 DB_USER="appuser"
@@ -93,6 +107,15 @@ echo "   - Verificando e encerrando processos anteriores na porta 5000..."
 sudo lsof -ti:5000 | xargs sudo kill -9 2>/dev/null
 sleep 1 # Pequena pausa para a porta liberar
 
+# Atualiza newrelic.ini do backend com a License Key
+if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then
+    echo "Atualizando newrelic.ini do backend com a License Key..."
+    sed -i "s|license_key = YOUR_NEW_RELIC_LICENSE_KEY_HERE|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
+#    echo "Backend configurado com app_name: My Python Flask Backend"
+else
+    # Se a chave não foi fornecida, desabilitar monitor_mode no backend
+    sed -i "s|monitor_mode = true|monitor_mode = false|" newrelic.ini
+fi
 
 echo "   - Iniciando Backend em segundo plano (logs em $BACKEND_LOG)..."
 NEW_RELIC_CONFIG_FILE="./newrelic.ini"  newrelic-admin run-program python3 app.py > "$BACKEND_LOG" 2>&1 &
@@ -118,6 +141,16 @@ fi
 echo "   - Ativando ambiente virtual e instalando dependências do frontend..."
 source venv_frontend/bin/activate || { echo "Erro ao ativar ambiente virtual para frontend."; exit 1; }
 pip install -r requirements.txt || { echo "Erro ao instalar dependências do frontend."; exit 1; }
+
+# Atualiza newrelic.ini do frontend com a License Key
+if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then
+    echo "Atualizando newrelic.ini do frontend com a License Key..."
+    sed -i "s|license_key = YOUR_NEW_RELIC_LICENSE_KEY_HERE|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
+ #   echo "Frontend configurado com app_name: My Python Flask Frontend"
+else
+    # Se a chave não foi fornecida, desabilitar monitor_mode no frontend
+    sed -i "s|monitor_mode = true|monitor_mode = false|" newrelic.ini
+fi
 
 # Garante que qualquer instância anterior na porta 8000 seja parada
 echo "   - Verificando e encerrando processos anteriores na porta 8000..."
