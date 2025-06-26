@@ -8,6 +8,26 @@ DB_NAME="appdb"
 # PROJECT_ROOT aponta para o diretório onde este script está sendo executado
 PROJECT_ROOT="$(pwd)"
 
+# --- Detecção Dinâmica de IP e Exportação de BACKEND_URL ---
+echo "Detectando endereço IP do host..."
+# Tenta obter o primeiro endereço IPv4 da máquina.
+# 'hostname -I' lista todos os endereços IP. 'awk '{print $1}' pega o primeiro.
+# Isso geralmente funciona para a maioria dos cenários de rede (IPv4).
+HOST_IP=$(hostname -I | awk '{print $1}')
+
+if [ -z "$HOST_IP" ]; then
+    echo "Aviso: Não foi possível detectar automaticamente o endereço IP do host."
+    echo "Usando 'localhost' como fallback. Isso pode causar problemas se o acesso for de outra máquina."
+    export BACKEND_URL="http://localhost:5000"
+else
+    echo "Endereço IP do Host Detectado: $HOST_IP"
+    export BACKEND_URL="http://${HOST_IP}:5000"
+fi
+
+echo "O Frontend se comunicará com o Backend em: $BACKEND_URL"
+# --- Fim da Detecção Dinâmica de IP ---
+
+
 # --- Caminhos para os logs de cada aplicação ---
 BACKEND_LOG="$PROJECT_ROOT/backend/backend.log"
 FRONTEND_LOG="$PROJECT_ROOT/frontend/frontend.log"
@@ -55,7 +75,7 @@ unset PGPASSWORD # Remove a variável de ambiente da senha
 echo "   Banco de dados '$DB_NAME' inicializado/atualizado com sucesso."
 
 # --- 3. Preparar e Iniciar Backend ---
-echo -e "\n--- 3. Preparando e iniciando Backend (http://localhost:5000)..."
+echo -e "\n--- 3. Preparando e iniciando Backend (http://${HOST_IP}:5000)..."
 cd "$PROJECT_ROOT/backend" || { echo "Erro: Não foi possível navegar para $PROJECT_ROOT/backend. Verifique a estrutura do diretório."; exit 1; }
 
 # Cria ambiente virtual se não existir
@@ -86,7 +106,7 @@ echo "   Aguardando 5 segundos para o Backend inicializar completamente..."
 sleep 5
 
 # --- 4. Preparar e Iniciar Frontend ---
-echo -e "\n--- 4. Preparando e iniciando Frontend (http://localhost:8000)..."
+echo -e "\n--- 4. Preparando e iniciando Frontend (http://${HOST_IP}:8000)..."
 cd "$PROJECT_ROOT/frontend" || { echo "Erro: Não foi possível navegar para $PROJECT_ROOT/frontend. Verifique a estrutura do diretório."; exit 1; }
 
 # Cria ambiente virtual se não existir
@@ -113,8 +133,8 @@ cd "$PROJECT_ROOT" # Volta para a raiz do projeto
 
 echo -e "\n*****************************************************"
 echo "  🎉 Configuração e inicialização da aplicação concluídas! 🎉"
-echo "  - Acesse o Frontend em:   http://localhost:8000"
-echo "  - O Backend está em:      http://localhost:5000"
+echo "  - Acesse o Frontend em:   http://${HOST_IP}:8000"
+echo "  - O Backend está em:      http://${HOST_IP}:5000"
 echo ""
 echo "  Para verificar os logs em tempo real:"
 echo "  - Backend:  tail -f $BACKEND_LOG"
