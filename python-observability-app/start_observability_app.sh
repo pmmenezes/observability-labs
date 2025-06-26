@@ -110,7 +110,7 @@ sleep 1 # Pequena pausa para a porta liberar
 # Atualiza newrelic.ini do backend com a License Key
 if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then
     echo "Atualizando newrelic.ini do backend com a License Key..."
-    sed -i "s|license_key = YOUR_NEW_RELIC_LICENSE_KEY_HERE|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
+    sed -i "s|license_key = NEW_RELIC_LICENSE_KEY|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
 #    echo "Backend configurado com app_name: My Python Flask Backend"
 else
     # Se a chave não foi fornecida, desabilitar monitor_mode no backend
@@ -145,7 +145,7 @@ pip install -r requirements.txt || { echo "Erro ao instalar dependências do fro
 # Atualiza newrelic.ini do frontend com a License Key
 if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then
     echo "Atualizando newrelic.ini do frontend com a License Key..."
-    sed -i "s|license_key = YOUR_NEW_RELIC_LICENSE_KEY_HERE|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
+    sed -i "s|license_key = NEW_RELIC_LICENSE_KEY|license_key = $NEW_RELIC_LICENSE_KEY|" newrelic.ini
  #   echo "Frontend configurado com app_name: My Python Flask Frontend"
 else
     # Se a chave não foi fornecida, desabilitar monitor_mode no frontend
