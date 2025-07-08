@@ -164,6 +164,24 @@ echo "   Frontend iniciado com PID: $FRONTEND_PID"
 deactivate
 cd "$PROJECT_ROOT" # Volta para a raiz do projeto
 
+# --- 5. Preparar e Iniciar Tests ---
+echo -e "\n--- 4. Preparando e iniciando Tests ..."
+cd "$PROJECT_ROOT/tests" || { echo "Erro: Não foi possível navegar para $PROJECT_ROOT/tests. Verifique a estrutura do diretório."; exit 1; }
+
+# Cria ambiente virtual se não existir
+if [ ! -d "venv_tests" ]; then
+    echo "   - Criando ambiente virtual 'venv_tests'..."
+    python3 -m venv venv_tests || { echo "Erro ao criar ambiente virtual para Teste."; exit 1; }
+fi
+
+echo "   - Ativando ambiente virtual e instalando dependências do Teste..."
+source venv_tests/bin/activate || { echo "Erro ao ativar ambiente virtual para Teste."; exit 1; }
+pip install -r requirements.txt || { echo "Erro ao instalar dependências do Teste."; exit 1; }
+
+echo "   Teste pronto para uso "
+deactivate
+cd "$PROJECT_ROOT" # Volta para a raiz do projeto
+
 echo -e "\n*****************************************************"
 echo "  🎉 Configuração e inicialização da aplicação concluídas! 🎉"
 echo "  - Acesse o Frontend em:   http://${HOST_IP}:8000"
