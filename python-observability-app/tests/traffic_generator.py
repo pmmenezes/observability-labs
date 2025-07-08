@@ -11,7 +11,6 @@ BACKEND_URL = "http://localhost:5000"
 product_ids = []
 
 # --- Funções para Interagir com a API ---
-
 def add_random_product():
     """Adiciona um produto aleatório ao backend."""
     name_prefix = random.choice(["Smartphone", "Notebook", "Teclado", "Mouse", "Monitor", "Câmera", "Fone de Ouvido", "Smartwatch"])
@@ -21,13 +20,16 @@ def add_random_product():
     description = f"Um {name_prefix.lower()} {description_suffix}. Ótima performance e durabilidade."
     price = round(random.uniform(20.00, 2000.00), 2)
 
+    # PRIMEIRA CORREÇÃO: AQUI product_data É DEFINIDO
     product_data = {
         "name": name,
         "description": description,
         "price": price
     }
 
-    print(f"Tentando adicionar: {product_data['name']} (R\${product_data['price']})")
+    # CORREÇÃO DO SYNTAXWARNING AQUI
+    print(f"Tentando adicionar: {product_data['name']} (R\${product_data['price']})") # Sem a barra invertida extra no $
+    
     try:
         response = requests.post(f"{BACKEND_URL}/products", json=product_data)
         response.raise_for_status()  # Levanta um erro para status HTTP ruins (4xx ou 5xx)
@@ -42,7 +44,6 @@ def add_random_product():
         print(f"Erro ao adicionar produto: {e}")
     except json.JSONDecodeError:
         print(f"Erro ao decodificar JSON na resposta de adição: {response.text}")
-
 
 def search_and_list_products():
     """Pesquisa ou lista todos os produtos aleatoriamente."""
@@ -107,42 +108,7 @@ def trigger_backend_error():
     except requests.exceptions.RequestException as e:
         print(f"Erro ao chamar rota de erro (esperado): {e}")
 
-
-# --- Loop Principal de Geração de Tráfego ---
-
-def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
-    """
-    Gera tráfego para a aplicação backend.
-    :param num_iterations: Número de iterações. Se None, executa indefinidamente.
-    :param sleep_min: Tempo mínimo de pausa entre as operações (segundos).
-    :param sleep_max: Tempo máximo de pausa entre as operações (segundos).
-    """
-    iteration = 0
-    while True:
-        iteration += 1
-        print(f"\n--- Iteração {iteration} ---")
-
-        actions = [
-            (add_random_product, 0.4),  # 40% chance de adicionar
-            (search_and_list_products, 0.5), # 50% chance de pesquisar/listar
-            (delete_random_product, 0.08),  # 8% chance de deletar
-            (trigger_backend_error, 0.02) # 2% chance de disparar um erro
-        ]
-
-        # Escolhe uma ação baseada nos pesos definidos
-        action_func = random.choices([a[0] for a in actions], weights=[a[1] for a in actions], k=1)[0]
-        action_func()
-
-        # Pausa aleatória
-        sleep_time = random.uniform(sleep_min, sleep_max)
-        print(f"Pausando por {sleep_time:.2f} segundos...")
-        time.sleep(sleep_time)
-
-        if num_iterations and iteration >= num_iterations:
-            print(f"\nConcluídas {num_iterations} iterações.")
-            break
-
-# --- NOVA FUNÇÃO PARA CHAMAR A ROTA DE LENTIDÃO ---
+# --- FUNÇÃO PARA CHAMAR A ROTA DE LENTIDÃO ---
 def call_slow_search_route():
     """Chama a rota de busca lenta no backend."""
     print("Chamando rota de busca lenta (/products/slow-search)...")
@@ -155,13 +121,17 @@ def call_slow_search_route():
         print(f"Erro ao chamar rota de busca lenta: {e}")
     except json.JSONDecodeError:
         print(f"Erro ao decodificar JSON na resposta de busca lenta: {response.text}")
-# --- FIM DA NOVA FUNÇÃO ---
 
-# --- Loop Principal de Geração de Tráfego ---
+# --- Loop Principal de Geração de Tráfego (Apenas UMA definição!) ---
 
 def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
-    # ... (código existente da função generate_traffic)
-
+    """
+    Gera tráfego para a aplicação backend.
+    :param num_iterations: Número de iterações. Se None, executa indefinidamente.
+    :param sleep_min: Tempo mínimo de pausa entre as operações (segundos).
+    :param sleep_max: Tempo máximo de pausa entre as operações (segundos).
+    """
+    iteration = 0 # Inicializa 'iteration' aqui!
     while True:
         iteration += 1
         print(f"\n--- Iteração {iteration} ---")
@@ -173,6 +143,20 @@ def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
             (trigger_backend_error, 0.02),      # 2% chance de disparar um erro
             (call_slow_search_route, 0.10)      # 10% chance de chamar a busca lenta
         ]
+
+        # Escolhe uma ação baseada nos pesos definidos
+        action_func = random.choices([a[0] for a in actions], weights=[a[1] for a in actions], k=1)[0]
+        action_func() # Chama a função de ação
+
+        # Pausa aleatória
+        sleep_time = random.uniform(sleep_min, sleep_max)
+        print(f"Pausando por {sleep_time:.2f} segundos...")
+        time.sleep(sleep_time)
+
+        if num_iterations and iteration >= num_iterations:
+            print(f"\nConcluídas {num_iterations} iterações.")
+            break
+
 
 if __name__ == "__main__":
     print(f"Iniciando gerador de tráfego para {BACKEND_URL}")
@@ -188,4 +172,3 @@ if __name__ == "__main__":
         print("\nGerador de tráfego interrompido pelo usuário.")
     except Exception as e:
         print(f"\nOcorreu um erro inesperado: {e}")
-
