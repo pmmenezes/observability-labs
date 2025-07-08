@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import random 
+import time   
 import os
 
 app = Flask(__name__)
@@ -111,6 +113,32 @@ def delete_product(product_id):
     finally:
         if conn:
             conn.close()
+# --- NOVA ROTA PARA SIMULAR CONSULTA LENTA ---
+@app.route('/products/slow-search', methods=['GET'])
+def slow_search_products():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Simula uma consulta lenta adicionando um atraso
+        # Este atraso será detectado pelo New Relic como parte do tempo de banco de dados
+        print("SIMULANDO LENTIDÃO INTENCIONAL na consulta de produtos lentos...")
+        time.sleep(1.0) # Atraso de 1 segundo (1000 milissegundos)
+
+        # Executa uma consulta simples para buscar todos os produtos
+        cur.execute("SELECT * FROM products")
+        
+        products = cur.fetchall()
+        cur.close()
+        return jsonify(products)
+    except Exception as e:
+        print(f"Erro ao recuperar produtos lentos: {e}")
+        return jsonify({"error": "Não foi possível recuperar os produtos lentos."}), 500
+    finally:
+        if conn:
+            conn.close()
+# --- FIM DA NOVA ROTA ---
 
 # Rota para teste de erro (mantida para observability)
 @app.route('/error-test')

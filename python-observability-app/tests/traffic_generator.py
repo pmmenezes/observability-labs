@@ -142,6 +142,38 @@ def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
             print(f"\nConcluídas {num_iterations} iterações.")
             break
 
+# --- NOVA FUNÇÃO PARA CHAMAR A ROTA DE LENTIDÃO ---
+def call_slow_search_route():
+    """Chama a rota de busca lenta no backend."""
+    print("Chamando rota de busca lenta (/products/slow-search)...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/products/slow-search")
+        response.raise_for_status()
+        products = response.json()
+        print(f"Busca lenta concluída. Encontrados {len(products)} produtos.")
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao chamar rota de busca lenta: {e}")
+    except json.JSONDecodeError:
+        print(f"Erro ao decodificar JSON na resposta de busca lenta: {response.text}")
+# --- FIM DA NOVA FUNÇÃO ---
+
+# --- Loop Principal de Geração de Tráfego ---
+
+def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
+    # ... (código existente da função generate_traffic)
+
+    while True:
+        iteration += 1
+        print(f"\n--- Iteração {iteration} ---")
+
+        actions = [
+            (add_random_product, 0.35),         # 35% chance de adicionar
+            (search_and_list_products, 0.45),   # 45% chance de pesquisar/listar
+            (delete_random_product, 0.08),      # 8% chance de deletar
+            (trigger_backend_error, 0.02),      # 2% chance de disparar um erro
+            (call_slow_search_route, 0.10)      # 10% chance de chamar a busca lenta
+        ]
+
 if __name__ == "__main__":
     print(f"Iniciando gerador de tráfego para {BACKEND_URL}")
     print("Pressione Ctrl+C para parar a qualquer momento.")
