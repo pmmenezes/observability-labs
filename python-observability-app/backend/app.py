@@ -5,9 +5,12 @@ from psycopg2.extras import RealDictCursor
 import random 
 import time   
 import os
+import logging
+
 
 app = Flask(__name__)
 CORS(app) # Habilite CORS para permitir requisições do frontend
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Função para obter conexão com o banco de dados
 def get_db_connection():

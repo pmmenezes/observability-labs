@@ -3,11 +3,34 @@
 from flask import Flask, render_template_string, request
 import requests
 import os
-
+import logging
+import socket # Importar o módulo socket
+# Função para obter o IP local da máquina
+def get_local_ip():
+    """
+    Tenta obter o endereço IP local da máquina.
+    Ele se conecta a um endereço externo (como um servidor DNS conhecido)
+    para determinar a interface de rede local apropriada, sem enviar dados.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Não se conecta de fato, apenas descobre qual interface IP usar.
+        # '8.8.8.8' é o DNS do Google, 1 é uma porta arbitrária.
+        # Nenhum dado é enviado, é apenas para simular uma conexão de saída
+        # e assim o socket pode descobrir seu próprio IP local.
+        s.connect(('8.8.8.8', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1' # Fallback para localhost se não conseguir determinar o IP
+    finally:
+        s.close()
+    return IP
 app = Flask(__name__)
 
 # URL do seu backend
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:5000')
+current_machine_ip = get_local_ip()
+BACKEND_URL = os.getenv('BACKEND_URL', f'http://{current_machine_ip}:5000')
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Template HTML completo com JavaScript para interatividade
 HTML_TEMPLATE = """
