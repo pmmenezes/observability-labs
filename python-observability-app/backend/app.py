@@ -36,6 +36,7 @@ def get_products():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         search_query = request.args.get('search', '') # Captura o parâmetro 'search' da URL
+        time.sleep(2) # Atraso de 2 segundos
 
         if search_query:
             # Pesquisa por nome ou descrição (case-insensitive)
