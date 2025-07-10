@@ -3,7 +3,7 @@
 -- Cria a tabela de produtos
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL
 );

@@ -20,15 +20,14 @@ def add_random_product():
     description = f"Um {name_prefix.lower()} {description_suffix}. Ótima performance e durabilidade."
     price = round(random.uniform(20.00, 2000.00), 2)
 
-    # PRIMEIRA CORREÇÃO: AQUI product_data É DEFINIDO
     product_data = {
         "name": name,
         "description": description,
         "price": price
     }
 
-    # CORREÇÃO DO SYNTAXWARNING AQUI
-    print(f"Tentando adicionar: {product_data['name']} (R\${product_data['price']})") # Sem a barra invertida extra no $
+    # Ajustado para remover a necessidade de escapar o $
+    print(f"Tentando adicionar: {product_data['name']} (R\${product_data['price']})")
     
     try:
         response = requests.post(f"{BACKEND_URL}/products", json=product_data)
@@ -122,7 +121,37 @@ def call_slow_search_route():
     except json.JSONDecodeError:
         print(f"Erro ao decodificar JSON na resposta de busca lenta: {response.text}")
 
-# --- Loop Principal de Geração de Tráfego (Apenas UMA definição!) ---
+# --- NOVA FUNÇÃO PARA SIMULAR ERROS DE DB ---
+def trigger_db_error():
+    """
+    Chama a rota de simulação de erro de DB com um tipo de erro aleatório.
+    Os tipos de erro devem corresponder aos definidos na rota '/products/db-error-test' do backend.
+    """
+    db_error_types = [
+        'no_table',
+        'unique_violation',
+        'no_column',
+        'syntax_error',
+        'not_null_violation',
+        'data_truncation'
+    ]
+    selected_error_type = random.choice(db_error_types)
+    print(f"Simulando erro de DB: '{selected_error_type}' (/products/db-error-test?type={selected_error_type})...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/products/db-error-test?type={selected_error_type}")
+        # Erros de DB devem resultar em status 500 ou 4xx, então raise_for_status() irá capturar
+        response.raise_for_status() 
+        # Esta linha geralmente não será alcançada se o erro de DB ocorrer como esperado
+        print(f"Erro de DB '{selected_error_type}' não causou status de erro HTTP. Resposta: {response.status_code} - {response.text}")
+    except requests.exceptions.RequestException as e:
+        # requests.exceptions.HTTPError é uma subclasse de RequestException
+        print(f"Erro de DB simulado '{selected_error_type}' capturado com sucesso (HTTP {e.response.status_code if e.response else 'N/A'}): {e}")
+    except json.JSONDecodeError:
+        print(f"Erro ao decodificar JSON na resposta de erro de DB: {response.text}")
+
+
+# --- Loop Principal de Geração de Tráfego ---
 
 def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
     """
@@ -131,21 +160,27 @@ def generate_traffic(num_iterations=None, sleep_min=1, sleep_max=3):
     :param sleep_min: Tempo mínimo de pausa entre as operações (segundos).
     :param sleep_max: Tempo máximo de pausa entre as operações (segundos).
     """
-    iteration = 0 # Inicializa 'iteration' aqui!
+    iteration = 0
     while True:
         iteration += 1
         print(f"\n--- Iteração {iteration} ---")
 
+        # Ajuste os pesos para cada ação conforme o desejado
         actions = [
-            (add_random_product, 0.35),         # 35% chance de adicionar
-            (search_and_list_products, 0.45),   # 45% chance de pesquisar/listar
-            (delete_random_product, 0.08),      # 8% chance de deletar
-            (trigger_backend_error, 0.02),      # 2% chance de disparar um erro
-            (call_slow_search_route, 0.10)      # 10% chance de chamar a busca lenta
+            (add_random_product, 0.30),         # 30% chance de adicionar
+            (search_and_list_products, 0.40),   # 40% chance de pesquisar/listar
+            (delete_random_product, 0.07),      # 7% chance de deletar
+            (trigger_backend_error, 0.01),      # 1% chance de disparar um erro de código no backend
+            (call_slow_search_route, 0.10),     # 10% chance de chamar a busca lenta (DB time)
+            (trigger_db_error, 0.12)            # 12% chance de simular um erro de DB
         ]
 
+        # Normaliza os pesos (garante que a soma é 1)
+        total_weight = sum(a[1] for a in actions)
+        normalized_weights = [a[1] / total_weight for a in actions]
+
         # Escolhe uma ação baseada nos pesos definidos
-        action_func = random.choices([a[0] for a in actions], weights=[a[1] for a in actions], k=1)[0]
+        action_func = random.choices([a[0] for a in actions], weights=normalized_weights, k=1)[0]
         action_func() # Chama a função de ação
 
         # Pausa aleatória

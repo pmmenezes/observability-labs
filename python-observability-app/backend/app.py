@@ -6,6 +6,7 @@ import random
 import time   
 import os
 import logging
+from psycopg2 import errors as pg_errors 
 
 
 app = Flask(__name__)
@@ -167,6 +168,81 @@ def slow_search_products():
         if conn:
             conn.close()
 # --- FIM DA NOVA ROTA ---
+
+# --- NOVA ROTA PARA SIMULAR DIVERSOS TIPOS DE ERROS DE DB ---
+@app.route('/products/db-error-test', methods=['GET'])
+def db_error_test():
+    error_type = request.args.get('type', 'none') # Captura o tipo de erro a simular
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor() # Não precisamos de RealDictCursor para estes testes simples
+
+        if error_type == 'no_table':
+            print("Simulando: Tabela inexistente...")
+            cur.execute("SELECT * FROM non_existent_table;")
+            
+        elif error_type == 'unique_violation':
+            print("Simulando: Violação de UNIQUE constraint...")
+            # Tenta inserir um produto com o mesmo nome de um já existente
+            # Assumindo que 'name' deveria ser UNIQUE (vamos forçar isso no SQL de init)
+            # ou que você tentará inserir o primeiro produto novamente.
+            cur.execute("INSERT INTO products (name, description, price) VALUES (%s, %s, %s);",
+                        ('Monitor UltraWide', 'Tentativa de duplicata', 100.00))
+            conn.commit() # Commit para que o erro ocorra (ou seja revertido)
+
+        elif error_type == 'no_column':
+            print("Simulando: Coluna inexistente...")
+            cur.execute("SELECT non_existent_column FROM products;")
+            
+        elif error_type == 'syntax_error':
+            print("Simulando: Erro de sintaxe SQL...")
+            cur.execute("SELECT * FROM products WHER id = 1;") # 'WHER' é erro
+
+        elif error_type == 'not_null_violation':
+            print("Simulando: Violação de NOT NULL constraint...")
+            cur.execute("INSERT INTO products (name, price) VALUES (NULL, 50.00);") # 'name' é NOT NULL
+            conn.commit() # Commit para que o erro ocorra
+
+        elif error_type == 'data_truncation':
+            print("Simulando: Truncamento de dados (string muito longa)...")
+            long_name = "A" * 300 # products.name é VARCHAR(255)
+            cur.execute("INSERT INTO products (name, description, price) VALUES (%s, %s, %s);",
+                        (long_name, 'Desc', 10.00))
+            conn.commit()
+
+        # Adicione mais tipos de erro conforme necessário
+
+        else:
+            return jsonify({"message": "Nenhum erro de DB simulado. Use ?type=no_table, unique_violation, no_column, syntax_error, not_null_violation, data_truncation."}), 200
+
+        # Se a execução chegar aqui, significa que a query (que deveria falhar) foi executada.
+        # Na maioria dos casos, a exceção será levantada antes.
+        cur.close()
+        return jsonify({"message": f"Erro de DB '{error_type}' deveria ter ocorrido. Verifique logs."}), 500
+
+    except (pg_errors.UndefinedTable, # Erro para tabela inexistente
+            pg_errors.UniqueViolation, # Erro para violação de UNIQUE
+            pg_errors.UndefinedColumn, # Erro para coluna inexistente
+            pg_errors.SyntaxError, # Erro de sintaxe SQL
+            pg_errors.NotNullViolation, # Erro para NOT NULL
+            pg_errors.StringDataRightTruncation, # Erro para truncamento de dados
+            psycopg2.Error # Captura qualquer outro erro de psycopg2
+            ) as e:
+        if conn:
+            conn.rollback() # Reverte a transação em caso de erro
+        error_message = str(e).strip().replace('\n', ' ') # Limpa a mensagem para JSON
+        print(f"ERRO DE DB SIMULADO ({error_type}): {error_message}")
+        return jsonify({"error": f"Erro de DB simulado: {error_type}. Detalhes: {error_message}"}), 500
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro inesperado no db-error-test: {e}")
+        return jsonify({"error": f"Erro inesperado: {str(e)}."}), 500
+    finally:
+        if conn:
+            conn.close()
+
 
 # Rota para teste de erro (mantida para observability)
 @app.route('/error-test')
