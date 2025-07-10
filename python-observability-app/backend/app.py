@@ -36,10 +36,12 @@ def get_products():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         search_query = request.args.get('search', '') # Captura o parâmetro 'search' da URL
-        time.sleep(2) # Atraso de 2 segundos
+       # time.sleep(2) # Atraso de 2 segundos
 
         if search_query:
-            # Pesquisa por nome ou descrição (case-insensitive)
+            # Esta pesquisa por nome ou descrição (case-insensitive) com ILIKE '%term%'
+            # será LENTA em um grande volume de dados se não houver um índice de trigram
+            # ou se o '%` estiver no início, impedindo o uso de índices B-tree comuns.
             cur.execute("SELECT * FROM products WHERE name ILIKE %s OR description ILIKE %s",
                         (f"%{search_query}%", f"%{search_query}%"))
         else:
@@ -125,10 +127,32 @@ def slow_search_products():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Simula uma consulta lenta adicionando um atraso
+        # SIMULAÇÃO DE LENTIDÃO NO BANCO DE DADOS:
+        # 1. Consulta com ORDER BY RANDOM() em uma tabela grande é muito ineficiente,
+        # pois exige que o DB leia e ordene a tabela inteira.
+        # 2. Consulta com ILIKE '%padrao%' sem índice apropriado força um "full table scan".
+        # 3. Ou, uma consulta com JOINs complexos sem índices.
+
+        # ESCOLHA UMA DAS OPÇÕES ABAIXO PARA SIMULAR A LENTIDÃO REAL NO DB:
+
+        # Opção 1: ORDER BY RANDOM() - Clássico exemplo de consulta lenta
+        print("SIMULANDO LENTIDÃO INTENCIONAL: ORDER BY RANDOM()")
+        cur.execute("SELECT id, name, description, price FROM products ORDER BY RANDOM() LIMIT 10;")
+
+        # Opção 2: Pesquisa com ILIKE em colunas não indexadas (se o termo for 'fascinante' ou 'qualidade', que populamos)
+        # Descomente esta linha e comente a Opção 1 para testar
+        # search_term = "fascinante"
+        # print(f"SIMULANDO LENTIDÃO INTENCIONAL: ILIKE '%{search_term}%' em milhões de registros")
+        # cur.execute("SELECT * FROM products WHERE description ILIKE %s;", (f"%{search_term}%",))
+
+        # Opção 3: Consulta com JOIN complexo (requer mais tabelas, não aplicável diretamente aqui, mas um conceito)
+        # Ex: SELECT p.* FROM products p JOIN another_large_table alt ON p.id = alt.product_id WHERE alt.some_col = 'value';    
+    
+    
+        # Simula uma consulta lenta adicionando um atraso no codigo
         # Este atraso será detectado pelo New Relic como parte do tempo de banco de dados
-        print("SIMULANDO LENTIDÃO INTENCIONAL na consulta de produtos lentos...")
-        time.sleep(1.0) # Atraso de 1 segundo (1000 milissegundos)
+        # print("SIMULANDO LENTIDÃO INTENCIONAL na consulta de produtos lentos...")
+        # time.sleep(1.0) # Atraso de 1 segundo (1000 milissegundos)
 
         # Executa uma consulta simples para buscar todos os produtos
         cur.execute("SELECT * FROM products")

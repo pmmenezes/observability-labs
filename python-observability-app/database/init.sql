@@ -8,13 +8,21 @@ CREATE TABLE IF NOT EXISTS products (
     price NUMERIC(10, 2) NOT NULL
 );
 
--- Insere alguns dados de exemplo
-INSERT INTO products (name, description, price) VALUES
-    ('Monitor UltraWide', 'Monitor de 34 polegadas, resolução 2560x1080.', 799.99),
-    ('Teclado Mecânico', 'Teclado com switches Cherry MX Blue e RGB.', 129.50),
-    ('Mouse Gamer', 'Mouse com sensor óptico de alta precisão e 12 botões programáveis.', 59.90),
-    ('Webcam Full HD', 'Webcam com resolução 1080p a 60fps.', 85.00),
-    ('Headset Surround 7.1', 'Fone de ouvido com áudio surround virtual 7.1 e microfone retrátil.', 150.00);
+-- Opcional: Apaga os dados existentes e reinicia a sequência para um teste limpo e repetível
+-- CUIDADO: Não use isso em produção se tiver dados importantes!
+DELETE FROM products;
+ALTER SEQUENCE products_id_seq RESTART WITH 1;
+
+-- Insere 100.000 produtos fictícios
+INSERT INTO products (name, description, price)
+SELECT
+    'Produto ' || LPAD(s::text, 6, '0'), -- Ex: 'Produto 000001'
+    'Descrição detalhada para o produto ' || LPAD(s::text, 6, '0') || '. Um item fascinante e de alta qualidade.',
+    (RANDOM() * 1000)::NUMERIC(10,2) -- Preço aleatório entre 0 e 1000
+FROM generate_series(1, 100000) s; -- Altere para um número maior (ex: 1000000) se quiser mais dados
+
+-- Importante: Atualiza as estatísticas do otimizador do PostgreSQL após a inserção em massa
+ANALYZE products;
 
 -- Mensagem opcional para verificar se a tabela e os dados foram criados
-SELECT 'Tabela products criada e dados inseridos com sucesso!' AS status;
+SELECT 'Tabela products criada e populada com sucesso!' AS status;
